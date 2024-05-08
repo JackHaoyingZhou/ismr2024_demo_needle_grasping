@@ -37,6 +37,7 @@ TODO.
 1. Run the usb_cam package
 ```bash
 roslaunch ar_tag_toolbox usb_cam.launch
+roslaunch ar_tag_toolbox ar_track_usb_cam.launch
 ```
 
 2. Run node to overlay coordinate frames in image stream.
