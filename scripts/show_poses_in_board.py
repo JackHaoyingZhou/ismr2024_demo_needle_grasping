@@ -91,7 +91,7 @@ class OpencvWindow:
 
 @dataclass
 class RosCamera:
-    namespace: str = field(default="/usb_cam/")
+    namespace: str = field(default="/depstech/")
     display_img: bool = False
     image_sub: rospy.Subscriber = None
     img: np.ndarray = field(init=False, default=None)
