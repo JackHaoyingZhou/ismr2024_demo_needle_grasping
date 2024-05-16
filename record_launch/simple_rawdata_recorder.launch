@@ -1,0 +1,10 @@
+<launch>
+    <node pkg="rosbag" type="record" name="recorder" output="screen" 
+            args="-o    /home/hzhou62/record_bags/test.bag
+                  -b    4096
+                        /PSM2/setpoint_cp
+                        /PSM2/jaw/setpoint_js
+                        /aruco/marker_poses
+                        "/>
+
+</launch>
