@@ -80,7 +80,7 @@
 	type="static_transform_publisher"
 	args="1 2 3 0 -3.141 0 /world /$(arg camera_name) 10"/>
 
-    display video using simple ros image_view
+  <!-- display video using simple ros image_view -->
   <node name="$(arg camera_name)"
 	pkg="image_view"
 	type="image_view"
