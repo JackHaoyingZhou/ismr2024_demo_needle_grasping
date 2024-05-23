@@ -24,12 +24,12 @@
        default="1"/>
   <!-- for default auto exposure set up, this value is 166-->
   <arg name="exposure_absolute"
-       default="100"/>
+       default="20"/>
 
   <!-- generate dummy arguments to build the gscam_config -->
 
   <arg name="_gscam_camctl"
-       default="extra_controls='c, exposure_auto=$(arg auto_exposure),exposure_absolute=$(arg exposure_absolute)' "/>
+       default="io-mode=2 extra_controls='c, exposure_auto=$(arg auto_exposure),exposure_absolute=$(arg exposure_absolute)' "/>
 
   <arg name="_gscam_videorate"
        default="! image/jpeg,width=$(arg image_width),height=$(arg image_height),framerate=$(arg images_per_seconds)/1 "/>
