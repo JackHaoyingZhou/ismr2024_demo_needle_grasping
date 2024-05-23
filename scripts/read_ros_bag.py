@@ -111,7 +111,7 @@ if __name__ == '__main__':
         #     draw_axes(ax, frame)
         draw_axes(ax, psm2_frame[-1])
         draw_axes(ax, ar_tag0_pose)
-        # draw_axes(ax, ar_tag1_pose)
+        draw_axes(ax, ar_tag1_pose)
 
     plt.show()
 

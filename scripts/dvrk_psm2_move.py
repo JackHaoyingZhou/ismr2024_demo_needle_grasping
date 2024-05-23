@@ -13,7 +13,6 @@ import rosbag
 import numpy
 import PyKDL
 import argparse
-import subprocess
 
 dynamic_path = os.path.abspath(__file__ + "/../../")
 # print(dynamic_path)
@@ -51,21 +50,6 @@ class arm_custom:
     def check_connections(self, timeout=5.0):
         self.__ral.check_connections(timeout)
 
-
-# helper function to kill the rosbag process
-def terminate_process_and_children(p):
-    ps_command = subprocess.Popen("ps -o pid --ppid %d --noheaders" % p.pid, shell=True, stdout=subprocess.PIPE)
-    ps_output = ps_command.stdout.read()
-    retcode = ps_command.wait()
-    assert retcode == 0, "ps command returned %d" % retcode
-    print(ps_output)
-    ps_output = ps_output.decode('utf-8')
-    print(ps_output.split("\n")[:-1])
-    for pid_str in ps_output.split("\n")[:-1]:
-        os.kill(int(pid_str), signal.SIGINT)
-    p.terminate()
-
-
 # if sys.version_info.major < 3:
 #     input = raw_input
 
@@ -81,7 +65,7 @@ argv = crtk.ral.parse_argv(sys.argv)
 # parse arguments
 # ---------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-a', '--arm', type=str, default='PSM1',
+parser.add_argument('-a', '--arm', type=str, default='PSM2',
                     choices=['PSM1', 'PSM2', 'PSM3'],
                     help='arm name corresponding to ROS topics without namespace.')
 parser.add_argument('-i', '--interval', type = float, default = 0.01,
@@ -147,7 +131,9 @@ if not arm.home(10):
     sys.exit('-- Failed to home within 10 seconds')
 
 input(
-    '---> Make sure the arm is ready to move using joint positions\n     You need to have a tool/instrument in place and properly engaged\n     Press "Enter" when the arm is ready')
+    '---> Make sure the arm is ready to move using joint positions\n     '
+    'You need to have a tool/instrument in place and properly engaged\n     '
+    'Press "Enter" when the arm is ready')
 
 # close gripper
 input('---> Press \"Enter\" to close the instrument\'s jaws')
