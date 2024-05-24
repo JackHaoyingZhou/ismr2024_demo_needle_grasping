@@ -305,7 +305,7 @@ if __name__ == "__main__":
     # extract ros arguments (e.g. __ns:= for namespace)
     argv = crtk.ral.parse_argv(sys.argv[1:])  # skip argv[0], script name
 
-    hand_eye_json_path = os.path.join(dynamic_path, 'test_data', 'PSM2-registration-open-cv.json')
+    hand_eye_json_path = os.path.join(dynamic_path, 'config', 'PSM2-registration-open-cv.json')
 
     # parse arguments
     parser = argparse.ArgumentParser()

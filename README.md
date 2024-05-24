@@ -1,3 +1,5 @@
 # ISMR dVRK autonomy demo: Automatic grasping of surgical needles
 
-To get started follow the instructions in [quickstart.md](./docs/quickstart_guide.md).
+Please follow the instructions at [Quick Start Guide](docs/demo_quick_start_guide.md)
+
+For developers, please also check the instruction at [Developer Guide](docs/script_devel_guide.md)

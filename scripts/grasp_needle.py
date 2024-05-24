@@ -236,9 +236,12 @@ class ArucoMarkerSubscriber:
         for marker in msg.markers:
             label = marker.id
             pose = convert_msg_to_frame(marker)
+            ## additional offset with respect to the Aruco marker in openCV coordinate system
+            add_offset = Frame(Rotation.RPY(0, 0, 0), Vector(0, 0, 0))
+            pose_new = pose * add_offset
             # change basis from openCV to dVRK
             coord_offset = Frame(Rotation.RPY(0, 0, np.pi), Vector(0, 0, 0))
-            pose_in_dvrk = coord_offset * pose
+            pose_in_dvrk = coord_offset * pose_new
             self.marker_dict[label] = pose_in_dvrk
 
     def create_copy_of_markers_arr(self):

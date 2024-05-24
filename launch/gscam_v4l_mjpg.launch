@@ -4,7 +4,7 @@
 <launch>
 
   <arg name="camera_name"
-       default="depstech"/>
+       default=""/>
   <arg name="device"
        default="/dev/video0"/>
   <arg name="camera_info_url"
@@ -24,7 +24,7 @@
        default="1"/>
   <!-- for default auto exposure set up, this value is 166-->
   <arg name="exposure_absolute"
-       default="20"/>
+       default="166"/>
 
   <!-- generate dummy arguments to build the gscam_config -->
 

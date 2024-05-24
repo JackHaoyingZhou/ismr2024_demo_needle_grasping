@@ -4,7 +4,7 @@
 <launch>
 
   <arg name="camera_name"
-       default="depstech"/>
+       default=""/>
   <arg name="device"
        default="/dev/video0"/>
   <arg name="camera_info_url"
