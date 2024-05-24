@@ -4,13 +4,45 @@
   <version>0.0.0</version>
   <description>The ismr2024_demo_needle_grasping package</description>
   <maintainer email="jbarrag3@jh.edu">Juan Antonio Barragan</maintainer>
+  <maintainer email="hzhou6@wpi.edu">Haoying(Jack) Zhou</maintainer>
   <license>TODO</license>
 
+  <!-- ############Old Package.xml ################3-->
+
+<!--  <buildtool_depend>catkin</buildtool_depend>-->
+<!--  <build_depend>rospy</build_depend>-->
+<!--  <build_export_depend>rospy</build_export_depend>-->
+<!--  <exec_depend>rospy</exec_depend>-->
+
+
+<!--  &lt;!&ndash; The export tag contains other, unspecified, tags &ndash;&gt;-->
+<!--  <export>-->
+<!--    &lt;!&ndash; Other tools can request additional information be placed here &ndash;&gt;-->
+
+<!--  </export>-->
+<!--</package>-->
+
+  <!-- ############New Package.xml ################3-->
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cv_bridge</build_depend>
   <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>aruco_detection</build_depend>
+  <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>aruco_detection</build_export_depend>
+  <exec_depend>cv_bridge</exec_depend>
   <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>aruco_detection</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
