@@ -41,8 +41,8 @@ if __name__ == '__main__':
     bag_folder = os.path.join(dynamic_path, "test_data")
     bag_file_list = load_rosbag_list(bag_folder)
     rosbag_name = bag_file_list[0]
-    # PlotFig = False
-    PlotFig = True
+    PlotFig = False
+    # PlotFig = True
 
     print('The ROS bag name is: ', rosbag_name)
 
@@ -73,8 +73,10 @@ if __name__ == '__main__':
         psm2_jaw_temp = msg.position[0]
         psm2_jaw.append(psm2_jaw_temp)
 
+    test_msg = []
     ### Read AR tags
     for _, msg, t in bag.read_messages(topics='/aruco/marker_poses'):
+        test_msg.append(msg)
         marker_temp = read_marker_msg(msg)
         # # if you want to check all keys in the dict
         # key_list = list(marker_temp.keys())

@@ -32,15 +32,14 @@ class PoseAnnotatorPSM:
     )
 
     def __post_init__(self):
-        # print(self.dist_coeffs.shape)
-        pass
+        print(self.dist_coeffs.shape)
 
     def draw_pose_on_img(self, img: np.ndarray, local_measured_cp: np.ndarray):
         offset = np.eye(4)
         # offset[0, 3] = -0.008 # z dir
         # offset[1, 3] =  0.005 # y dir
         # offset[2, 3] = 0.008 # x dir
-        pose = self.cam_T_base @ local_measured_cp @ offset
+        pose = local_measured_cp @ offset
 
         tvec = pose[:3, 3]
         rvec = cv2.Rodrigues(pose[:3, :3])[0]
@@ -258,12 +257,6 @@ class arm_custom:
             self.__crtk_utils.add_move_jp()
             self.__crtk_utils.add_servo_jp()
 
-    class Local:
-        def __init__(self, ral, expected_interval, operating_state_instance):
-            self.crtk_utils = crtk.utils(self, ral, expected_interval, operating_state_instance)
-            self.crtk_utils.add_measured_cp()
-            self.crtk_utils.add_forward_kinematics()
-
     def __init__(self, ral, arm_name, ros_namespace="", expected_interval=0.01):
         # ROS initialization
         if not rospy.get_node_uri():
@@ -281,21 +274,10 @@ class arm_custom:
         jaw_ral = self.ral().create_child('/jaw')
         self.jaw = self.__jaw_device(jaw_ral, expected_interval, operating_state_instance=self)
         self.namespace = ros_namespace
-        psm_local = self.ral().create_child("local")
-        self.local = self.Local(psm_local, expected_interval, operating_state_instance=self)
         self.name = arm_name
-        base_frame_topic = "/{}/set_base_frame".format(self.namespace)
-        self._set_base_frame_pub = self.ral().publisher(base_frame_topic, PoseStamped, queue_size=1, latch=True)
 
     def ral(self):
         return self.__ral
-
-    def clear_base_frame(self):
-        identity = Pose(Point(0.0, 0.0, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0))
-        self._set_base_frame_pub.publish(identity)
-
-    def set_base_frame(self, pose):
-        self._set_base_frame_pub.publish(pose)
 
     def check_connections(self, timeout=5.0):
         self.__ral.check_connections(timeout)
@@ -349,7 +331,7 @@ if __name__ == "__main__":
     psm_annotator = PoseAnnotatorPSM(img_subscriber.camera_matrix, cam_T_robot_base)
     aruco_annotator = PoseAnnotatorAruco(img_subscriber.camera_instrinsic, img_subscriber.camera_distortion)
 
-    window_name = 'All Annotation OpenCV'
+    window_name = 'All Annotation'
     window = OpencvWindow(window_name)
     # cv2.resizeWindow(window_name, 640, 480)
 
@@ -362,16 +344,26 @@ if __name__ == "__main__":
 
             for marker in marker_arr:
                 pose_in_cam_mtx = pm.toMatrix(pm.fromMsg(marker.pose))
-                # pose_in_cam_frame = convert_mat_to_frame(pose_in_cam_mtx)
-                # offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.01)) ### found the offset!
-                # pose_in_cam_frame_new = pose_in_cam_frame * offset
-                # pose_in_cam_mtx_new = convert_frame_to_mat(pose_in_cam_frame_new)
+                # img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx)
+
+                # change basis
+                pose_in_cam_frame = convert_mat_to_frame(pose_in_cam_mtx)
+                coord_offset = Frame(Rotation.RPY(0, 0, np.pi), Vector(0, 0, 0))
+                pose_in_cam_frame_new = coord_offset * pose_in_cam_frame
+                pose_in_cam_mtx_new = convert_frame_to_mat(pose_in_cam_frame_new)
                 # img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx_new)
-                img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx)
+                # find offset between tag and psm
+                offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.02)) ### found the offset!
+                pose_in_cam_frame_new_new = pose_in_cam_frame_new * offset
+                pose_in_cam_mtx_new_new = convert_frame_to_mat(pose_in_cam_frame_new_new)
+                img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx_new_new)
 
-        local_measured_cp = pm.toMatrix(arm_handle.local.measured_cp())
 
-        img = psm_annotator.draw_pose_on_img(img, local_measured_cp)
+
+
+        measured_cp = pm.toMatrix(arm_handle.measured_cp())
+
+        img = psm_annotator.draw_pose_on_img(img, measured_cp)
         window.show_img(img)
 
     cv2.destroyAllWindows()

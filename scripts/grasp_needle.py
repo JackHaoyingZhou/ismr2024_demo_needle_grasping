@@ -15,17 +15,17 @@ import json
 from aruco_detection.msg import MarkerPose, MarkerPoseArray
 import tf_conversions.posemath as pm
 import os
-from utility import convert_mat_to_frame, convert_frame_to_mat
+from utility import convert_mat_to_frame, convert_frame_to_mat, convert_msg_to_frame, cartesian_interpolate_step
 from PyKDL import Frame, Rotation, Vector
 dynamic_path = os.path.abspath(__file__ + "/../../")
 # print(dynamic_path)
 sys.path.append(dynamic_path)
+import copy
 
 
 @dataclass
 class PoseAnnotatorPSM:
     camera_matrix: np.ndarray
-    cam_T_base: np.ndarray
     dist_coeffs: np.ndarray = field(
         default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0, 0.0]).reshape((-1, 1)),
         init=False,
@@ -35,12 +35,12 @@ class PoseAnnotatorPSM:
         # print(self.dist_coeffs.shape)
         pass
 
-    def draw_pose_on_img(self, img: np.ndarray, local_measured_cp: np.ndarray):
+    def draw_pose_on_img(self, img: np.ndarray, measured_cp: np.ndarray):
         offset = np.eye(4)
         # offset[0, 3] = -0.008 # z dir
         # offset[1, 3] =  0.005 # y dir
         # offset[2, 3] = 0.008 # x dir
-        pose = self.cam_T_base @ local_measured_cp @ offset
+        pose = measured_cp @ offset
 
         tvec = pose[:3, 3]
         rvec = cv2.Rodrigues(pose[:3, :3])[0]
@@ -226,28 +226,26 @@ class ArucoMarkerSubscriber:
         self.markers_sub = rospy.Subscriber(
             "/aruco/marker_poses", MarkerPoseArray, self._callback
         )
+        self.marker_dict = dict()
 
     def __len__(self):
-        return len(self.marker_arr)
+        return len(self.marker_dict)
 
     def _callback(self, msg: MarkerPoseArray):
         self.marker_arr: List[MarkerPose] = msg.markers
+        for marker in msg.markers:
+            label = marker.id
+            pose = convert_msg_to_frame(marker)
+            # change basis from openCV to dVRK
+            coord_offset = Frame(Rotation.RPY(0, 0, np.pi), Vector(0, 0, 0))
+            pose_in_dvrk = coord_offset * pose
+            self.marker_dict[label] = pose_in_dvrk
 
     def create_copy_of_markers_arr(self):
         return self.marker_arr.copy()
 
-
-def load_hand_eye_calibration(json_file: str) -> np.ndarray:
-    '''
-    Load hand eye calibration file for open CV
-    :param json_file: the file path
-    :return: 4x4 transformation matrix
-    '''
-    with open(json_file, "r") as f:
-        data = json.load(f)
-
-    cam_T_robot_base = np.array(data['base-frame']['transform']).reshape(4, 4)
-    return cam_T_robot_base
+    def create_copy_of_markers_dict(self):
+        return self.marker_dict.copy()
 
 
 class arm_custom:
@@ -257,12 +255,6 @@ class arm_custom:
             self.__crtk_utils = crtk.utils(self, ral, expected_interval, operating_state_instance)
             self.__crtk_utils.add_move_jp()
             self.__crtk_utils.add_servo_jp()
-
-    class Local:
-        def __init__(self, ral, expected_interval, operating_state_instance):
-            self.crtk_utils = crtk.utils(self, ral, expected_interval, operating_state_instance)
-            self.crtk_utils.add_measured_cp()
-            self.crtk_utils.add_forward_kinematics()
 
     def __init__(self, ral, arm_name, ros_namespace="", expected_interval=0.01):
         # ROS initialization
@@ -281,32 +273,16 @@ class arm_custom:
         jaw_ral = self.ral().create_child('/jaw')
         self.jaw = self.__jaw_device(jaw_ral, expected_interval, operating_state_instance=self)
         self.namespace = ros_namespace
-        psm_local = self.ral().create_child("local")
-        self.local = self.Local(psm_local, expected_interval, operating_state_instance=self)
         self.name = arm_name
-        base_frame_topic = "/{}/set_base_frame".format(self.namespace)
-        self._set_base_frame_pub = self.ral().publisher(base_frame_topic, PoseStamped, queue_size=1, latch=True)
 
     def ral(self):
         return self.__ral
-
-    def clear_base_frame(self):
-        identity = Pose(Point(0.0, 0.0, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0))
-        self._set_base_frame_pub.publish(identity)
-
-    def set_base_frame(self, pose):
-        self._set_base_frame_pub.publish(pose)
 
     def check_connections(self, timeout=5.0):
         self.__ral.check_connections(timeout)
 
 
 if __name__ == "__main__":
-    # extract ros arguments (e.g. __ns:= for namespace)
-    argv = crtk.ral.parse_argv(sys.argv[1:])  # skip argv[0], script name
-
-    hand_eye_json_path = os.path.join(dynamic_path, 'test_data', 'PSM2-registration-open-cv.json')
-
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -318,11 +294,11 @@ if __name__ == "__main__":
         help="PSM name corresponding to ROS topics without namespace.  Use __ns:= to specify the namespace",
     )
     parser.add_argument(
-        "-f",
-        "--hand-eye-json",
+        "-t",
+        "--target-tag",
         type=str,
-        default=hand_eye_json_path,
-        help="hand-eye calibration matrix in JSON format using OpenCV coordinate system",
+        default=1,
+        help="target tag id to reach",
     )
     parser.add_argument(
         "-c",
@@ -331,47 +307,64 @@ if __name__ == "__main__":
         default='/depstech',
         help="ROS namespace for the camera",
     )
+    # extract ros arguments (e.g. __ns:= for namespace)
+    argv = crtk.ral.parse_argv(sys.argv[1:])  # skip argv[0], script name
     args = parser.parse_args(argv)
-
+    target_tag = int(args.target_tag)
     camera_image_topic = args.camera_namespace + "/image_rect_color"
     camera_info_topic = args.camera_namespace + "/camera_info"
 
-    ral = crtk.ral("visualize_all_frames")
+    ral = crtk.ral("grasp_needle")
     arm_handle = arm_custom(ral, arm_name=args.psm_name, expected_interval=0.1)
     ral.check_connections()
     cv2.setNumThreads(2)
-    cam_T_robot_base = load_hand_eye_calibration(args.hand_eye_json)
 
     img_subscriber = ImageSubscriber(ral, camera_image_topic, camera_info_topic)
     img_subscriber.wait_until_first_frame()
     aruco_marker_sub = ArucoMarkerSubscriber()
 
-    psm_annotator = PoseAnnotatorPSM(img_subscriber.camera_matrix, cam_T_robot_base)
+    psm_annotator = PoseAnnotatorPSM(img_subscriber.camera_matrix)
     aruco_annotator = PoseAnnotatorAruco(img_subscriber.camera_instrinsic, img_subscriber.camera_distortion)
 
-    window_name = 'All Annotation OpenCV'
-    window = OpencvWindow(window_name)
+    # window_name = 'All Annotation dVRK'
+    # window = OpencvWindow(window_name)
     # cv2.resizeWindow(window_name, 640, 480)
 
+    time.sleep(2.0)
+
     while not ral.is_shutdown():
-
-        img = img_subscriber.img
-
+        # img = img_subscriber.img
+        # print(aruco_marker_sub.create_copy_of_markers_dict())
         if len(aruco_marker_sub) > 0:
-            marker_arr = aruco_marker_sub.create_copy_of_markers_arr()
+            marker_dict = aruco_marker_sub.create_copy_of_markers_dict()
+            marker_frame = marker_dict[target_tag]
+            offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.02)) ### found the offset!
+            tag_in_dvrk_frame = marker_frame * offset
+            # tag_in_dvrk_mtx = convert_frame_to_mat(tag_in_dvrk_frame)
+            # img = aruco_annotator.draw_pose_on_img(img, tag_in_dvrk_mtx)
 
-            for marker in marker_arr:
-                pose_in_cam_mtx = pm.toMatrix(pm.fromMsg(marker.pose))
-                # pose_in_cam_frame = convert_mat_to_frame(pose_in_cam_mtx)
-                # offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.01)) ### found the offset!
-                # pose_in_cam_frame_new = pose_in_cam_frame * offset
-                # pose_in_cam_mtx_new = convert_frame_to_mat(pose_in_cam_frame_new)
-                # img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx_new)
-                img = aruco_annotator.draw_pose_on_img(img, pose_in_cam_mtx)
+        measured_cp = arm_handle.measured_cp()
+        T_psm_tip = copy.deepcopy(measured_cp)
 
-        local_measured_cp = pm.toMatrix(arm_handle.local.measured_cp())
+        done = False
 
-        img = psm_annotator.draw_pose_on_img(img, local_measured_cp)
-        window.show_img(img)
+        while not done:
+            T_delta, done = cartesian_interpolate_step(T_psm_tip, tag_in_dvrk_frame, 0.01, 0.005)
+            r_delta = T_delta.M.GetRPY()
+            T_cmd = Frame()
+            T_cmd.p = T_psm_tip.p + T_delta.p
+            T_cmd.M = T_psm_tip.M * Rotation.RPY(r_delta[0], r_delta[1], r_delta[2])
+            T_psm_tip = T_cmd
+            arm_handle.move_cp(T_cmd)
 
-    cv2.destroyAllWindows()
+        if done:
+            break
+
+        # measured_cp_mtx = convert_frame_to_mat(measured_cp)
+
+        # img = psm_annotator.draw_pose_on_img(img, measured_cp_mtx)
+        # window.show_img(img)
+
+    print('Done')
+
+    # cv2.destroyAllWindows()
