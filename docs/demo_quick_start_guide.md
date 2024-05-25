@@ -177,7 +177,7 @@ If you would like to visualize the frames, please run the following command in a
 rosrun ismr2024_demo_needle_grasping show_all_frames.py
 ```
 
-Alternatively, you can set your own parameters based on the [developer guid](../docs/script_devel_guide.md) for the 
+Alternatively, you can set your own parameters based on the [developer guide](../docs/script_devel_guide.md) for the 
 above two running scripts. After modifications, you have to run through Python:
 
 ```bash
