@@ -356,7 +356,7 @@ if __name__ == "__main__":
         if len(aruco_marker_sub) > 0:
             marker_dict = aruco_marker_sub.create_copy_of_markers_dict()
             marker_frame = marker_dict[target_tag]
-            offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.02)) ### found the offset!
+            offset = Frame(Rotation.RPY(np.pi, 0, 0), Vector(0, 0, 0.018)) ### found the offset!
             tag_in_dvrk_frame = marker_frame * offset
             # tag_in_dvrk_mtx = convert_frame_to_mat(tag_in_dvrk_frame)
             # img = aruco_annotator.draw_pose_on_img(img, tag_in_dvrk_mtx)
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         done = False
 
         while not done:
-            T_delta, done = cartesian_interpolate_step(T_psm_tip, tag_in_dvrk_frame, 0.005, 0.005)
+            T_delta, done = cartesian_interpolate_step(T_psm_tip, tag_in_dvrk_frame, 0.01, 0.005)
             r_delta = T_delta.M.GetRPY()
             T_cmd = Frame()
             T_cmd.p = T_psm_tip.p + T_delta.p
@@ -393,15 +393,31 @@ if __name__ == "__main__":
 
     print('Close the grippers to pick up the needle ....')
 
-    for i in range(3):
+    for i in range(20):
+        start_t = time.time()
+        move_psm = Vector(0, 0.001, 0.001)
+
+        T_cmd = Frame()
+
+        T_cmd.p = T_psm_tip.p + move_psm
+        T_cmd.M = T_psm_tip.M
+
+        T_psm_tip = T_cmd
+
         arm_handle.jaw.servo_jp(np.array([-0.6]))
-        time.sleep(0.3)
+        arm_handle.servo_cp(T_cmd)
+        end_t = time.time()
+        delta_t = 0.1 - (end_t - start_t)
+        if delta_t>0:
+            time.sleep(delta_t)
 
     time.sleep(1)
 
-    # arm_handle.jaw.move_jp(np.array([-0.6])).wait()
+    input('Press Enter to drop the needle')
+
+    arm_handle.jaw.move_jp(np.array([0.0])).wait()
     arm_handle.move_cp(psm_init).wait()
-    arm_handle.jaw.move_jp(np.array([-0.6])).wait()
+    # arm_handle.jaw.move_jp(np.array([-0.6])).wait()
 
     print('Done')
 
