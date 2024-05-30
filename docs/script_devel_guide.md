@@ -2,10 +2,7 @@
 
 ## Aruco Marker Size for Detection
 
-Unfortunately, we currently hard-code the marker size in the [aruco detection code](https://github.com/JackHaoyingZhou/aruco_detection/blob/main/scripts/aruco_detector.py#L14).
-
-If you would like to modify the marker size, you need to change the parameter `marker_length` in the mentioned code above, 
-the unit of the length is meter.
+Please check the [aruco detection README](https://github.com/JackHaoyingZhou/aruco_detection/blob/main/README.md)
 
 ## Visualization Script - [show_all_frames.py](../scripts/show_all_frames.py)
 
