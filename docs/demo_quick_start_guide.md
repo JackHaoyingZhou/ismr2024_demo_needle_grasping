@@ -165,6 +165,15 @@ Secondly, you need to run the Aruco detection script to enable the tracking of a
 rosrun aruco_detection aruco_detector.py
 ```
 
+**Alternatively, you can set your own parameters based on the [developer guide](../docs/script_devel_guide.md) for the 
+above script. After modifications, you have to run through Python:**
+
+```bash
+roscd aruco_detection
+cd scripts
+python aruco_detector.py <your arguments>
+```
+
 Last but not least, you can run the needle grasping script using default settings:
 
 ```bash
@@ -182,12 +191,12 @@ above two running scripts. After modifications, you have to run through Python:
 
 ```bash
 cd ~/catkin_ws_dvrk/src/ismr2024_demo_needle_grasping/scripts
-python grasp_needle.py <your settings>
+python grasp_needle.py <your arguments>
 ```
 
 and 
 
 ```bash
 cd ~/catkin_ws_dvrk/src/ismr2024_demo_needle_grasping/scripts
-python show_all_frames.py <your settings>
+python show_all_frames.py <your arguments>
 ```
