@@ -341,7 +341,7 @@ if __name__ == "__main__":
 
     time.sleep(1.0)
 
-    for target_tag in range(4):
+    for target_tag in range(num_tag):
         print("Start Needle grasping for tag ", target_tag)
         while not ral.is_shutdown():
             # img = img_subscriber.img
